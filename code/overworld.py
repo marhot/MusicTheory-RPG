@@ -1,7 +1,9 @@
 import sys, pygame, random
-import config, battle
+import config, battle2 #battle
 from unit import PlayerChar, Enemy
 from pygame.locals import *
+
+#import effects
 
 
 #Overworld graph
@@ -102,7 +104,8 @@ class Scene (object):
                 if entity.category == 'floor':
                         #first find location on floor
                         floorLocY = int(unit.y + unit.height - unit.foot - (config.SCREENY - entity.height))
-                        if floorLocY >= 0 and unit.x >= 0 and unit.x <= config.SCREENX:
+                        if floorLocY >= 0 and unit.y + unit.height <= config.SCREENY - 8 and unit.x >= 0 and unit.x <= config.SCREENX:
+                                #print floorLocY
                                 if entity.image.get_at((unit.x, floorLocY))[3] == 0:
                                         if unit.direction == 'right':
                                                 unit.x -= 8
@@ -112,6 +115,13 @@ class Scene (object):
                                                 unit.y += 8
                                         elif unit.direction == 'down':
                                                 unit.y -= 8
+
+                if entity.category == 'platform':
+                        if unit.y + unit.height + unit.z >= -4 + entity.loc[1] and unit.y + unit.height + unit.z <= 20 + entity.loc[1]:
+                                unit.fall = False
+                                #print 'landed on platform'
+
+                                #'''and unit.z < 0'''
                         
                 if entity.category != 'barrier':
                         return
@@ -125,12 +135,23 @@ class Scene (object):
                 if tmp1 == tmp2:
                         print "error, unit and entity are occupying same space"
 
+                if unit.y + unit.height > entity.loc[1] + entity.height and unit.prevY + unit.height < entity.loc[1] + entity.height:
+                        #an attempt to pass through barrier has been made
+                        unit.y -= 8
+                        return
+
+                elif unit.y + unit.height < entity.loc[1] + entity.height and unit.prevY + unit.height > entity.loc[1] + entity.height:
+                        #an attempt to pass through barrier has been made
+                        unit.y += 8
+                        return
+
+
                 if unit.y + unit.height >= entity.loc[1] + entity.height: #unit's y value is in front of entity
                         #place unit in front of entity
                         if tmp1 > tmp2: #unit is already in front of entity
                                 return
                         if tmp1 < tmp2: #unit is behind entity and needs to be moved
-                                print 'placing unit in front'
+                                #print 'placing unit in front'
                                 self.changeOrder(tmp1, tmp2, 'back')
                 #confirm if unit is in front of entity
                 if (unit.y + unit.height < entity.loc[1] + entity.height): #unit's y value is behind entity's y value
@@ -138,7 +159,7 @@ class Scene (object):
                         if tmp1 < tmp2: #unit is already in behind entity
                                 return
                         if tmp1 > tmp2: #unit is in front of entity and needs to be moved
-                                print 'placing unit in behind'
+                                #print 'placing unit in behind'
                                 self.changeOrder(tmp1, tmp2, 'forward')
 
                 
@@ -155,19 +176,19 @@ class Scene (object):
                                         break
 
                 if direction == 'forward':
-                        print 'forward recognized'
+                        #print 'forward recognized'
                         tmp1 = self.order[unitLoc]
                         x = unitLoc - 1
                         while x >= 0:     
                         #for x in range (unitLoc - 1, 0):
-                                print 'shifting'
+                                #print 'shifting'
                                 tmp2 = self.order[x]
                                 self.order[x + 1] = tmp2
                                 x -= 1
 
                                 if tmp2 == self.order[entityLoc]:
                                         self.order[entityLoc] = tmp1
-                                        print 'moved back'
+                                        #print 'moved back'
                                         break
                                         
                 if direction == 'front':
@@ -178,7 +199,7 @@ class Scene (object):
         def collision_old (self, unit, entity, position):
                 count = 0
                 if position == 'behind':
-                        print 'checking order'
+                        #print 'checking order'
                         for entry in self.order:
                                 if entry.name == unit:
                                         tmp1 = count
@@ -192,7 +213,7 @@ class Scene (object):
                                 print 'already behind'
                                 return
                         if tmp1 < tmp2:
-                                print 'fixing order'
+                                #print 'fixing order'
                                 tmpEntity1 = self.order[tmp2]
                                 for x in range (tmp2, len(self.order)):
                                         tmpEntity2 = self.order[x]
@@ -215,6 +236,9 @@ class Entity (object):
                 if self.category == 'floor':
                         self.loc = (0, config.SCREENY - self.height)
 
+                if self.category == 'platform':
+                        self.z = -1 * self.height
+
         def draw(self):
                 #print 'drawing tree'
                 #print 'drawing ' + self.name + ' at (' + str(self.loc[0]) + ',' + str(self.loc[1]) + ')'
@@ -223,7 +247,19 @@ class Entity (object):
                 
 
 
-
+'''class Platform (Entity):
+        def __init__(self, name, category, imgLoc, loc, z):
+                self.name = name
+                self.category = category
+                self.imgLoc = imgLoc
+                self.loc = loc
+                image = pygame.image.load(self.imgLoc)
+                self.width = image.get_size()[0]
+                self.height = image.get_size()[1]
+                self.image = pygame.image.load(self.imgLoc)
+                self.pxarray = pygame.PixelArray(image)
+                self.z = z'''
+                
         
 
 # initialize overworld with music [and other unimplemented things like character location]
@@ -245,8 +281,20 @@ def runOverworld(playerChars, enemies, keys):
 		for enemy in enemies:
 			enemy.wander()
 			if areTouching(playerChar, enemy):
-				battle.init(playerChar, enemy)
-				return "battle"	
+				#battle.init(playerChar, enemy)
+				return "battle"
+
+	return "overworld"
+
+	'''config.TEST.draw()
+	config.T1 = pygame.time.get_ticks()
+	print config.T1
+
+	if (config.T1 - config.T2 >= 300):
+                config.T2 = config.T1
+                config.TEST.fill()'''
+	
+	#config.TEST.fill()
 
 
 # return true if units are touching 
@@ -272,5 +320,15 @@ def act(player, keys):
 		player.step = True
 	else:
                 player.step = False
+
+        if keys[K_SPACE]:
+                player.jump()
+
+        if keys[K_1]:
+                config.TEST.draw()
+
+        if keys[K_2]:
+                config.TEST.fill()
+                config.T2 = pygame.time.get_ticks()
 	#player.draw()
 

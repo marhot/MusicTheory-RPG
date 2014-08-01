@@ -1,6 +1,7 @@
 import sys, pygame, random
 import config
 from basicAttack import BasicAttack
+import battleUnit
 from pygame.locals import *
 
 # general framework of units
@@ -21,6 +22,9 @@ class Unit(object):
 		self.stepNum = 0
 		self.stepCount = 1
 
+                #make BattleProfile
+		self.battleProfile = battleUnit.BattleProfile(self, HP) 
+
 		# battle statistics
 		self.status = "normal"
 		self.stats["maxHP"] = HP
@@ -31,12 +35,16 @@ class Unit(object):
 		# drawing data
 		self.x = 0
 		self.y = 0
+		self.z = 0
+		self.prevX = 0
+		self.prevY = 0
 		self.direction = "down"
 		self.imgLoc = imgLoc
                 tmp = pygame.image.load(self.imgLoc + '/' + self.direction + ".png")
 		self.width = tmp.get_size()[0]
 		self.height = tmp.get_size()[1]
-		self.foot = self.height * .25
+		self.foot = self.height * .125
+		self.fall = False
 
 
 	# print out name, class, all stats, and all learned moves
@@ -136,13 +144,20 @@ class Unit(object):
 			if self.y < config.SCREENY - 100:
 				self.y += 4
 
+	def jump(self):
+                if self.z < 0:
+                        return
+                #print "jump"
+                self.z = -64
+                self.fall = True
+
 
 	# blit unit onto screen
 	def draw(self):
                 #print 'drawing ' + self.name + ' at (' + str(self.x) + ',' + str(self.y) + ')'
                 #print config.OVERWORLD.curScene.order
                 if self.step == True:
-                        print self.stepCount
+                        #print self.stepCount
                         image = pygame.image.load(self.imgLoc + '/' + self.direction + str(self.stepNum) + '.png')
                         '''if self.stepNum == 0:
                                 self.stepNum = 1
@@ -161,24 +176,30 @@ class Unit(object):
                 else:
                         image = pygame.image.load(self.imgLoc + '/' + self.direction + ".png")
 		#image = pygame.image.load(self.imgLoc + '/' + self.direction + ".png")
-		config.SCREEN.blit(image, (self.x, self.y))
-		pygame.draw.circle(config.SCREEN, (255, 0, 0), (self.x, self.y), 10) 
+		config.SCREEN.blit(image, (self.x, self.y + self.z))
+		#pygame.draw.circle(config.SCREEN, (255, 0, 0), (self.x, self.y), 10) 
 
+                if self.z < 0 and self.fall == True:
+                        if self.z > -8:
+                                self.z = 0
+                        self.z += 8
 
 
 class PlayerChar(Unit):
 
         def move(self, direction):
+                self.prevX = self.x
+                self.prevY = self.y
 		if(direction == "right"):
 			self.direction = direction
 			self.x += 8
 		elif(direction == "left"):
 			self.direction = direction
 			self.x -= 8
-		elif(direction == "up" and self.y >= 4):
+		elif(direction == "up"):
 			self.direction = direction
-			if self.y >= 8:
-				self.y -= 8
+			#if self.y >= 8:
+			self.y -= 8
 		elif(direction == "down" and self.y < config.SCREENY - 100):
 			self.direction = direction
 			if self.y < config.SCREENY - 100:
@@ -189,11 +210,11 @@ class PlayerChar(Unit):
                         #if (self.width > entity.loc[0] and self.x < entity.width) or (self.x < entity.width and self.x > entity.loc[0]):
                         if self.name != entity.name and (self.x >= entity.loc[0] and self.x <= entity.loc[0] + entity.width) or (self.x + self.width >= entity.loc[0] and self.x + self.width <= entity.loc[0] + entity.width) and ((self.y + self.height <= entity.loc[1] and self.y + self.height >= entity.loc[1] + entity.height) or (self.y >= entity.loc[1] and self.y <= entity.loc[1] + entity.height)):
                                 #player has enocountered an entity in the x direction
-                                print 'x collision between'
+                                """print 'x collision between'
                                 print ' '
                                 print self.name
                                 print ' and '
-                                print entity.name
+                                print entity.name"""
                                 config.OVERWORLD.curScene.collision(self, entity, 'behind')
                                 #if (entity.category == 'temporary string'):
                                         #START HERE
